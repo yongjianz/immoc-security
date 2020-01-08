@@ -1,0 +1,293 @@
+Index: immoc-security-demo/src/main/resources/application.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>GBK
+===================================================================
+--- immoc-security-demo/src/main/resources/application.properties	(revision fd3f8662b3985133c4b114c098b01374701729bf)
++++ immoc-security-demo/src/main/resources/application.properties	(date 1578476742720)
+@@ -2,4 +2,5 @@
+ #  basic:
+ #    enabled: false
+ server.port= 8080
+-#immoc.security.browser.loginPage=/demo-signIn.html
+\ No newline at end of file
++#immoc.security.browser.loginPage=/demo-signIn.html
++immoc.security.browser.loginType = REDIRECT
+\ No newline at end of file
+Index: immoc-security-core/src/main/java/com/immoc/sercurity/core/properties/LoginType.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- immoc-security-core/src/main/java/com/immoc/sercurity/core/properties/LoginType.java	(date 1578476795475)
++++ immoc-security-core/src/main/java/com/immoc/sercurity/core/properties/LoginType.java	(date 1578476795475)
+@@ -0,0 +1,6 @@
++package com.immoc.sercurity.core.properties;
++
++public enum LoginType {
++    REDIRECT,
++    JSON
++}
+Index: immoc-security-browser/src/main/java/com/immoc/security/browser/authentication/MyAuthenticationFailureHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- immoc-security-browser/src/main/java/com/immoc/security/browser/authentication/MyAuthenticationFailureHandler.java	(date 1578476650101)
++++ immoc-security-browser/src/main/java/com/immoc/security/browser/authentication/MyAuthenticationFailureHandler.java	(date 1578476650101)
+@@ -0,0 +1,43 @@
++package com.immoc.security.browser.authentication;
++
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.immoc.security.browser.support.SimpleResponse;
++import com.immoc.sercurity.core.properties.LoginType;
++import com.immoc.sercurity.core.properties.SecurityProperties;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.http.HttpStatus;
++import org.springframework.security.core.AuthenticationException;
++import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
++import org.springframework.stereotype.Component;
++import javax.servlet.ServletException;
++import javax.servlet.http.HttpServletRequest;
++import javax.servlet.http.HttpServletResponse;
++import java.io.IOException;
++
++@Component
++public class MyAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
++
++    private Logger logger = LoggerFactory.getLogger(getClass());
++
++    @Autowired
++    private ObjectMapper objectMapper;
++
++    @Autowired
++    private SecurityProperties securityProperties;
++
++    @Override
++    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
++
++        logger.info("登录失败");
++
++        if (LoginType.JSON.equals(securityProperties.getBrowser().getLoginType())) {
++            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
++            response.setContentType("application/json;charset=UTF-8");
++            response.getWriter().write(objectMapper.writeValueAsString(new SimpleResponse(exception.getMessage())));
++        } else {
++            super.onAuthenticationFailure(request, response, exception);
++        }
++    }
++}
+Index: immoc-security-core/pom.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- immoc-security-core/pom.xml	(revision fd3f8662b3985133c4b114c098b01374701729bf)
++++ immoc-security-core/pom.xml	(date 1578474722874)
+@@ -22,6 +22,10 @@
+             <artifactId>spring-social-web</artifactId>
+         </dependency>
+ 
++        <dependency>
++            <groupId>commons-lang</groupId>
++            <artifactId>commons-lang</artifactId>
++        </dependency>
+         <dependency>
+             <groupId>org.springframework.boot</groupId>
+             <artifactId>spring-boot-configuration-processor</artifactId>
+Index: immoc-security-browser/src/main/java/com/immoc/security/browser/BrowsercurityConfig.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- immoc-security-browser/src/main/java/com/immoc/security/browser/BrowsercurityConfig.java	(revision fd3f8662b3985133c4b114c098b01374701729bf)
++++ immoc-security-browser/src/main/java/com/immoc/security/browser/BrowsercurityConfig.java	(date 1578476045015)
+@@ -1,6 +1,7 @@
+ package com.immoc.security.browser;
+ 
+-import com.immoc.security.browser.authentication.myAuthenticationSuccessHandler;
++import com.immoc.security.browser.authentication.MyAuthenticationFailureHandler;
++import com.immoc.security.browser.authentication.MyAuthenticationSuccessHandler;
+ import com.immoc.sercurity.core.properties.SecurityProperties;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.context.annotation.Bean;
+@@ -18,7 +19,10 @@
+     private SecurityProperties securityProperties;
+ 
+     @Autowired
+-    private myAuthenticationSuccessHandler successHandler;
++    private MyAuthenticationSuccessHandler successHandler;
++
++    @Autowired
++    private MyAuthenticationFailureHandler failHandlerHandler;
+ 
+     @Bean
+     public PasswordEncoder passwordEncoder(){
+@@ -28,13 +32,14 @@
+ 
+     @Override
+     protected void configure(HttpSecurity http) throws Exception {
+-            http.formLogin()//表单登录
++            http.formLogin()//设置为表单登录
+                 .loginPage("/authentication/require")//设置登录页面
+-                .loginProcessingUrl("/authentication/form")//修改UsernamePasswordAuthenticationFilter默认处理的登录url
++                .loginProcessingUrl("/authentication/form")//修改UsernamePasswordAuthenticationFilter默认处理的登录表单提交url
+                 .successHandler(successHandler)
++                .failureHandler(failHandlerHandler)
+                 .and() //所有请求都需要登录认证
+                 .authorizeRequests()
+-                .antMatchers("/code/image","/authentication/require",securityProperties.getBrowser().getLoginPage()).permitAll()//指定页面无需认证
++                .antMatchers("/code/image","/authentication/require",securityProperties.getBrowser().getLoginPage()).permitAll()//配置的页面无需认证
+                 .anyRequest()
+                 .authenticated()
+                 .and()
+Index: immoc-security-core/src/main/java/com/immoc/sercurity/core/validate/code/ValidateCodeException.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- immoc-security-core/src/main/java/com/immoc/sercurity/core/validate/code/ValidateCodeException.java	(date 1578475252465)
++++ immoc-security-core/src/main/java/com/immoc/sercurity/core/validate/code/ValidateCodeException.java	(date 1578475252465)
+@@ -0,0 +1,10 @@
++package com.immoc.sercurity.core.validate.code;
++
++import org.springframework.security.core.AuthenticationException;
++
++public class ValidateCodeException extends AuthenticationException {
++
++    public ValidateCodeException(String msg) {
++        super(msg);
++    }
++}
+Index: immoc-security-core/src/main/java/com/immoc/sercurity/core/validate/code/ValidateCodeFilter.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- immoc-security-core/src/main/java/com/immoc/sercurity/core/validate/code/ValidateCodeFilter.java	(date 1578475252433)
++++ immoc-security-core/src/main/java/com/immoc/sercurity/core/validate/code/ValidateCodeFilter.java	(date 1578475252433)
+@@ -0,0 +1,27 @@
++package com.immoc.sercurity.core.validate.code;
++import org.apache.commons.lang.StringUtils;
++import org.springframework.web.context.request.ServletWebRequest;
++import org.springframework.web.filter.OncePerRequestFilter;
++import javax.servlet.FilterChain;
++import javax.servlet.ServletException;
++import javax.servlet.http.HttpServletRequest;
++import javax.servlet.http.HttpServletResponse;
++import java.io.IOException;
++
++public class ValidateCodeFilter extends OncePerRequestFilter {
++    @Override
++    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
++        if(StringUtils.equals("/authentication/form",request.getRequestURI())
++            && StringUtils.endsWithIgnoreCase(request.getMethod(), "post")){
++            try{
++                validate(new ServletWebRequest(request));
++            }catch (ValidateCodeException e){
++
++            }
++        }
++        filterChain.doFilter(request, response);
++    }
++
++    private void validate(ServletWebRequest servletWebRequest) {
++    }
++}
+Index: immoc-security-browser/src/main/java/com/immoc/security/browser/authentication/myAuthenticationSuccessHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- immoc-security-browser/src/main/java/com/immoc/security/browser/authentication/myAuthenticationSuccessHandler.java	(revision fd3f8662b3985133c4b114c098b01374701729bf)
++++ immoc-security-browser/src/main/java/com/immoc/security/browser/authentication/MyAuthenticationSuccessHandler.java	(date 1578476650090)
+@@ -2,11 +2,14 @@
+ 
+ 
+ import com.fasterxml.jackson.databind.ObjectMapper;
++import com.immoc.sercurity.core.properties.LoginType;
++import com.immoc.sercurity.core.properties.SecurityProperties;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.security.core.Authentication;
+ import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
++import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+ import org.springframework.stereotype.Component;
+ 
+ import javax.servlet.ServletException;
+@@ -15,16 +18,23 @@
+ import java.io.IOException;
+ 
+ @Component
+-public class myAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
++public class MyAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
+ 
+     private Logger logger = LoggerFactory.getLogger(getClass());
+ 
++    @Autowired
++    private SecurityProperties securityProperties;
++
+     @Autowired
+     private ObjectMapper objectMapper;
+     @Override
+     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+         logger.info("登录成功");
++        if(LoginType.JSON.equals(securityProperties.getBrowser().getLoginType())){
+         response.setContentType("application/json;charset=UTF-8");
+         response.getWriter().write(objectMapper.writeValueAsString(authentication));
++        }else{
++            super.onAuthenticationSuccess(request ,response, authentication);
++        }
+     }
+ }
+Index: immoc-security-core/src/main/java/com/immoc/sercurity/core/properties/BrowserProperties.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- immoc-security-core/src/main/java/com/immoc/sercurity/core/properties/BrowserProperties.java	(revision fd3f8662b3985133c4b114c098b01374701729bf)
++++ immoc-security-core/src/main/java/com/immoc/sercurity/core/properties/BrowserProperties.java	(date 1578476650075)
+@@ -4,6 +4,8 @@
+ 
+     private String loginPage = "/signIn.html";
+ 
++    private LoginType loginType =LoginType.JSON;
++
+     public String getLoginPage() {
+         return loginPage;
+     }
+@@ -11,4 +13,12 @@
+     public void setLoginPage(String loginPage) {
+         this.loginPage = loginPage;
+     }
++
++    public LoginType getLoginType() {
++        return loginType;
++    }
++
++    public void setLoginType(LoginType loginType) {
++        this.loginType = loginType;
++    }
+ }
+Index: immoc-security-browser/src/main/resources/resources/index.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- immoc-security-browser/src/main/resources/resources/index.html	(date 1578476928265)
++++ immoc-security-browser/src/main/resources/resources/index.html	(date 1578476928265)
+@@ -0,0 +1,10 @@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++    <meta charset="UTF-8">
++    <title>index</title>
++</head>
++<body>
++    index
++</body>
++</html>
+\ No newline at end of file

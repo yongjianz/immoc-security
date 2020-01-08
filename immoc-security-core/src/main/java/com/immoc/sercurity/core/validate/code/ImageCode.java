@@ -23,6 +23,10 @@ public class ImageCode {
         this.expireTime = LocalDateTime.now().plusSeconds(expireIn);
     }
 
+    public boolean isExpired(){
+        return LocalDateTime.now().isAfter(expireTime);
+    }
+
     public BufferedImage getIamge() {
         return iamge;
     }

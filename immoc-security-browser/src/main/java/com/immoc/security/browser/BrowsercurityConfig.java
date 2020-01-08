@@ -3,6 +3,7 @@ package com.immoc.security.browser;
 import com.immoc.security.browser.authentication.MyAuthenticationFailureHandler;
 import com.immoc.security.browser.authentication.MyAuthenticationSuccessHandler;
 import com.immoc.sercurity.core.properties.SecurityProperties;
+import com.immoc.sercurity.core.validate.code.ValidateCodeFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 public class BrowsercurityConfig extends WebSecurityConfigurerAdapter {
@@ -23,6 +25,9 @@ public class BrowsercurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     private MyAuthenticationFailureHandler failHandlerHandler;
+
+    @Autowired
+    private ValidateCodeFilter validateCodeFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder(){
@@ -43,6 +48,7 @@ public class BrowsercurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest()
                 .authenticated()
                 .and()
-                .csrf().disable();
+                .csrf().disable()
+                .addFilterBefore(validateCodeFilter, UsernamePasswordAuthenticationFilter.class);
     }
 }
