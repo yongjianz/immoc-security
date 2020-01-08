@@ -26,8 +26,7 @@ public class BrowsercurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private MyAuthenticationFailureHandler failHandlerHandler;
 
-    @Autowired
-    private ValidateCodeFilter validateCodeFilter;
+
 
     @Bean
     public PasswordEncoder passwordEncoder(){
@@ -37,6 +36,10 @@ public class BrowsercurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+         ValidateCodeFilter validateCodeFilter = new ValidateCodeFilter();
+         validateCodeFilter.setFailureHandler(failHandlerHandler);
+         validateCodeFilter.setSecurityProperties(securityProperties);
+         validateCodeFilter.afterPropertiesSet();
             http.formLogin()//设置为表单登录
                 .loginPage("/authentication/require")//设置登录页面
                 .loginProcessingUrl("/authentication/form")//修改UsernamePasswordAuthenticationFilter默认处理的登录表单提交url
