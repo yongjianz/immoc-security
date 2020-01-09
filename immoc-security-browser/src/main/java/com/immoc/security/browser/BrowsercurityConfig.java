@@ -47,7 +47,7 @@ public class BrowsercurityConfig extends WebSecurityConfigurerAdapter {
                 .failureHandler(failHandlerHandler)
                 .and() //所有请求都需要登录认证
                 .authorizeRequests()
-                .antMatchers("/code/image","/authentication/require",securityProperties.getBrowser().getLoginPage()).permitAll()//配置的页面无需认证
+                .antMatchers("/code/image","/code/sms","/authentication/require",securityProperties.getBrowser().getLoginPage()).permitAll()//配置的页面无需认证
                 .anyRequest()
                 .authenticated()
                 .and()

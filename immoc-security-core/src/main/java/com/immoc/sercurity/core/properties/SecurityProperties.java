@@ -9,6 +9,7 @@ public class SecurityProperties {
 
     private VolidateCodeProperties Code = new VolidateCodeProperties();
 
+
     public BrowserProperties getBrowser() {
         return browser;
     }

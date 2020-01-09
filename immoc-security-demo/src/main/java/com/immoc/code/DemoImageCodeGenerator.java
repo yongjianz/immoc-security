@@ -1,11 +1,9 @@
 package com.immoc.code;
 
-import com.immoc.sercurity.core.validate.code.ImageCode;
+import com.immoc.sercurity.core.validate.code.image.ImageCode;
 import com.immoc.sercurity.core.validate.code.ValidateCodeGenerator;
-import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.ServletWebRequest;
-
-@Component("imageCodeGenerator")
+//@Component("imageCodeGenerator")
 public class DemoImageCodeGenerator implements ValidateCodeGenerator {
 
     @Override

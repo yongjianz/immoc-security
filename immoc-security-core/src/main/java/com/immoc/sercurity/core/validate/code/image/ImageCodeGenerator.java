@@ -1,8 +1,8 @@
-package com.immoc.sercurity.core.validate.code;
+package com.immoc.sercurity.core.validate.code.image;
 
 import com.immoc.sercurity.core.properties.SecurityProperties;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import com.immoc.sercurity.core.validate.code.ValidateCodeGenerator;
+import com.immoc.sercurity.core.validate.code.image.ImageCode;
 import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.context.request.ServletWebRequest;
 
@@ -11,7 +11,7 @@ import java.awt.image.BufferedImage;
 import java.util.Random;
 
 
-public class ImageVolidateCodeGenerator implements ValidateCodeGenerator {
+public class ImageCodeGenerator implements ValidateCodeGenerator {
 
 
     private SecurityProperties securityProperties;
