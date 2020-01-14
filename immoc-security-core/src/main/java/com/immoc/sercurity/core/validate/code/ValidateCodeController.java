@@ -1,5 +1,6 @@
 package com.immoc.sercurity.core.validate.code;
 
+import com.immoc.sercurity.core.properties.SecurityConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,12 +14,11 @@ import java.util.Map;
 public class ValidateCodeController {
 
     @Autowired
-    private Map<String, ValidateCodeProcessor> validateCodeGeneratorMap;
+    private ValidateCodeProcessorHolder validateCodeProcessorHolder;
 
-    @GetMapping("/code/{type}")
+    @GetMapping(SecurityConstants.DEFAULT_VALIDATE_CODE_URL_PREFIX+"/{type}")
     public void createSmsCoode(ServletWebRequest request, @PathVariable String type) throws Exception {
-        System.out.println(validateCodeGeneratorMap.get(type+"CodeProcessor"));
-        validateCodeGeneratorMap.get(type+"CodeProcessor").create(request);
+        validateCodeProcessorHolder.findValidateCodeProcessor(type).create(request);
     }
 
 }
