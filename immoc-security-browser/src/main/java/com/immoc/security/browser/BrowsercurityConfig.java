@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.social.security.SpringSocialConfigurer;
 
 @Configuration
 public class BrowsercurityConfig extends WebSecurityConfigurerAdapter {
@@ -34,6 +35,9 @@ public class BrowsercurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private ValidateCodeFilter validateCodeFilter;
 
+    @Autowired
+    private SpringSocialConfigurer socialConfigurer;
+
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
@@ -49,19 +53,23 @@ public class BrowsercurityConfig extends WebSecurityConfigurerAdapter {
                 .loginProcessingUrl(SecurityConstants.DEFAULT_LOGIN_PROCESSING_URL_FORM)//修改UsernamePasswordAuthenticationFilter默认处理的登录表单提交url
                 .successHandler(successHandler)
                 .failureHandler(failHandlerHandler)
+                    .and()
+                    .apply(socialConfigurer)
                 .and() //所有请求都需要登录认证
-                .authorizeRequests()
-                .antMatchers(
-                        SecurityConstants.DEFAULT_LOGIN_PROCESSING_URL_MOBILE,
-                        SecurityConstants.DEFAULT_VALIDATE_CODE_URL_PREFIX+"/*",
-                        securityProperties.getBrowser().getLoginPage()).
-                    permitAll()//配置的页面无需认证
-                .anyRequest()
-                .authenticated()
+                    .authorizeRequests()
+                    .antMatchers(
+                            SecurityConstants.DEFAULT_LOGIN_PROCESSING_URL_MOBILE,
+                            SecurityConstants.DEFAULT_VALIDATE_CODE_URL_PREFIX+"/*",
+                            SecurityConstants.DEFAULT_UNAUTHENTICATION_URL,
+                            securityProperties.getBrowser().getLoginPage()).
+                        permitAll()//配置的页面无需认证
+                    .anyRequest()
+                    .authenticated()
                 .and()
-                .csrf().disable()
-                .addFilterBefore(validateCodeFilter, UsernamePasswordAuthenticationFilter.class)
-                .apply(smsCodeAuthenticationSecurityConfig);
+                    .csrf().disable()
+                    .addFilterBefore(validateCodeFilter, UsernamePasswordAuthenticationFilter.class)
+                    .apply(smsCodeAuthenticationSecurityConfig);
+
     }
 }
 

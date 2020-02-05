@@ -9,6 +9,7 @@ public class SecurityProperties {
 
     private VolidateCodeProperties Code = new VolidateCodeProperties();
 
+    private SocialProperties social = new SocialProperties();
 
     public BrowserProperties getBrowser() {
         return browser;
@@ -24,5 +25,13 @@ public class SecurityProperties {
 
     public void setCode(VolidateCodeProperties code) {
         Code = code;
+    }
+
+    public SocialProperties getSocial() {
+        return social;
+    }
+
+    public void setSocial(SocialProperties social) {
+        this.social = social;
     }
 }
